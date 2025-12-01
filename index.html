@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SpeedRead — Rapid Reading</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <div class="top-right">
+            <button id="textsBtn" class="btn" title="Manage texts">Texts</button>
+            <button id="settingsBtn" class="btn" title="Settings">⚙️</button>
+        </div>
+
+        <div id="viewer" aria-label="Speed reader viewer">
+            <div id="word" role="status"><span class="initial-message">Click 'Texts' to add, then tap screen to start</span></div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal-backdrop" style="display:none">
+            <div class="panel">
+                <h3 style="margin:0 0 8px 0">Settings</h3>
+                <div class="row controls"><label>Word size</label><input id="sizeRange" type="range" min="24" max="400" value="72"><input id="sizeNumber" type="number" min="24" max="400" value="72"></div>
+                <div class="row controls"><label>Speed (WPM)</label><input id="wpmRange" type="range" min="50" max="1500" value="300"><input id="wpmNumber" type="number" min="20" max="5000" value="300"></div>
+                <div class="row"><label>Background</label><input id="bgColor" type="color" value="#111111"></div>
+                <div class="row"><label>Text color</label><input id="fgColor" type="color" value="#ffffff"></div>
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+                    <button id="settingsClose" class="btn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Texts Modal -->
+        <div id="textsModal" class="modal-backdrop" style="display:none">
+            <div class="panel">
+                <h3 style="margin:0 0 8px 0">Texts</h3>
+                <input id="textTitle" placeholder="Title (optional)" style="width:100%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#071018;color:var(--fg)">
+                <textarea id="textInput" placeholder="Paste or type your text here"></textarea>
+                <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
+                    <button id="saveText" class="btn">Save</button>
+                    <button id="loadTextToViewer" class="btn">Load to Viewer</button>
+                    <button id="downloadText" class="btn">Download</button>
+                    <button id="textsClose" class="btn">Close</button>
+                </div>
+
+                <div class="tiny" style="margin-top:10px">Saved texts</div>
+                <div id="savedList" class="saved-list"></div>
+            </div>
+        </div>
+    </div>
+    <div id="credit">Mahmut İŞİYOK</div>
+
+    <script src="app.js" defer></script>
+</body>
+</html>
