@@ -29,8 +29,24 @@ textarea{width:100%;min-height:160px;padding:8px;border-radius:6px;border:1px so
 .saved-item{display:flex;justify-content:space-between;gap:8px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);margin-bottom:6px}
 .small-btn{padding:6px 8px;font-size:13px}
 
+/* Feedback buttons (bottom-right) */
+.feedback-panel{position:fixed;bottom:60px;right:12px;display:flex;flex-direction:column;gap:8px;z-index:35}
+.feedback-btn{width:50px;height:50px;border-radius:50%;border:none;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.1s;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.feedback-btn:hover{transform:scale(1.15)}
+.feedback-btn:active{transform:scale(0.95)}
+.feedback-btn.correct{background:#4ade80;box-shadow:0 4px 12px rgba(74,222,128,0.4)}
+.feedback-btn.wrong{background:#ef4444;box-shadow:0 4px 12px rgba(239,68,68,0.4)}
+
+/* Floating emoji animation */
+@keyframes floatEmoji{
+  0%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-200px) scale(0.5)}
+}
+
+.floating-emoji{position:fixed;font-size:48px;pointer-events:none;animation:floatEmoji 1.5s ease-out forwards;z-index:99}
+
 /* Responsive font scale */
-@media (max-width:600px){:root{--size:40px}.panel{min-width:280px}}
+@media (max-width:600px){:root{--size:40px}.panel{min-width:280px}.feedback-panel{bottom:50px;right:8px}.feedback-btn{width:44px;height:44px;font-size:20px}}
 
 /* Bottom-right credit (non-interactive) */
 #credit{position:fixed;right:12px;bottom:10px;color:rgba(255,255,255,0.65);font-size:12px;padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.25);z-index:80;pointer-events:none;user-select:none;font-family:'Poppins',sans-serif}

@@ -17,6 +17,12 @@ g<!DOCTYPE html>
             <div id="word" role="status"><span class="initial-message">Click 'Texts' to add, then tap screen to start</span></div>
         </div>
 
+        <!-- Feedback buttons (bottom-right) -->
+        <div class="feedback-panel">
+            <button id="correctBtn" class="feedback-btn correct" title="Doğru ✓">😊</button>
+            <button id="wrongBtn" class="feedback-btn wrong" title="Yanlış ✗">😢</button>
+        </div>
+
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal-backdrop" style="display:none">
             <div class="panel">
@@ -25,6 +31,11 @@ g<!DOCTYPE html>
                 <div class="row controls"><label>Speed (WPM)</label><input id="wpmRange" type="range" min="0" max="1500" value="300"><input id="wpmNumber" type="number" min="0" max="5000" value="300"></div>
                 <div class="row"><label>Background</label><input id="bgColor" type="color" value="#111111"></div>
                 <div class="row"><label>Text color</label><input id="fgColor" type="color" value="#ffffff"></div>
+                <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
+                    <div class="tiny" style="margin-bottom:8px;color:#b7c1c9">Emoji Feedback</div>
+                    <div class="row controls"><label>Emoji count</label><input id="emojiCountRange" type="range" min="1" max="50" value="3"><input id="emojiCountNumber" type="number" min="1" max="50" value="3"></div>
+                    <div class="row controls"><label>Emoji size</label><input id="emojiSizeRange" type="range" min="24" max="300" value="48"><input id="emojiSizeNumber" type="number" min="24" max="300" value="48"></div>
+                </div>
                 <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
                     <button id="settingsClose" class="btn">Close</button>
                 </div>

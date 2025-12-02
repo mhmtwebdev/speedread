@@ -66,6 +66,14 @@ const loadTextToViewer = document.getElementById('loadTextToViewer');
 const downloadText = document.getElementById('downloadText');
 const savedList = document.getElementById('savedList');
 
+// Feedback buttons
+const correctBtn = document.getElementById('correctBtn');
+const wrongBtn = document.getElementById('wrongBtn');
+const emojiCountRange = document.getElementById('emojiCountRange');
+const emojiCountNumber = document.getElementById('emojiCountNumber');
+const emojiSizeRange = document.getElementById('emojiSizeRange');
+const emojiSizeNumber = document.getElementById('emojiSizeNumber');
+
 // State
 let words = [];
 let index = 0;
@@ -75,7 +83,9 @@ let settings = {
   size: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--size')) || 72,
   wpm: 300,
   bg: '#111111',
-  fg: '#ffffff'
+  fg: '#ffffff',
+  emojiCount: 3,
+  emojiSize: 48
 };
 
 // Helpers
@@ -102,6 +112,8 @@ function applySettingsToUI(){
   sizeRange.value = settings.size; sizeNumber.value = settings.size;
   wpmRange.value = settings.wpm; wpmNumber.value = settings.wpm;
   bgColor.value = settings.bg; fgColor.value = settings.fg;
+  emojiCountRange.value = settings.emojiCount; emojiCountNumber.value = settings.emojiCount;
+  emojiSizeRange.value = settings.emojiSize; emojiSizeNumber.value = settings.emojiSize;
 }
 function applySettingsToUIVars(){
   document.documentElement.style.setProperty('--size', settings.size + 'px');
@@ -195,6 +207,115 @@ function loadToViewer(item){
   index = 0; pause(); wordEl.textContent = words[0] || '';
 }
 
+// Emoji animation and sound effects
+function showFloatingEmojis(emoji, count=null){
+  if(count === null) count = settings.emojiCount;
+  for(let i=0; i<count; i++){
+    setTimeout(()=>{
+      const el = document.createElement('div');
+      el.className = 'floating-emoji';
+      el.textContent = emoji;
+      el.style.fontSize = settings.emojiSize + 'px';
+      el.style.left = Math.random()*80 + 10 + '%';
+      el.style.top = Math.random()*30 + 50 + '%';
+      document.body.appendChild(el);
+      setTimeout(()=> el.remove(), 1500);
+    }, i*100);
+  }
+}
+
+function playSound(type){
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  if(type === 'correct'){
+    // Popular "ding" sound - like game show correct answer
+    // Creates uplifting, happy tone
+    
+    // Main ding tone - bright and cheerful
+    const ding = audioCtx.createOscillator();
+    const dingGain = audioCtx.createGain();
+    ding.type = 'sine';
+    ding.frequency.setValueAtTime(1046.50, audioCtx.currentTime); // C6 note
+    ding.connect(dingGain);
+    dingGain.connect(audioCtx.destination);
+    dingGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    dingGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+    ding.start(audioCtx.currentTime);
+    ding.stop(audioCtx.currentTime + 0.4);
+    
+    // Second harmonic for fullness
+    const ding2 = audioCtx.createOscillator();
+    const ding2Gain = audioCtx.createGain();
+    ding2.type = 'sine';
+    ding2.frequency.value = 1046.50 * 1.5; // +perfect fifth
+    ding2.connect(ding2Gain);
+    ding2Gain.connect(audioCtx.destination);
+    ding2Gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    ding2Gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+    ding2.start(audioCtx.currentTime);
+    ding2.stop(audioCtx.currentTime + 0.35);
+    
+    // Bright chime with triangle wave
+    const chime = audioCtx.createOscillator();
+    const chimeGain = audioCtx.createGain();
+    chime.type = 'triangle';
+    chime.frequency.setValueAtTime(2093, audioCtx.currentTime); // C7 - one octave higher
+    chime.connect(chimeGain);
+    chimeGain.connect(audioCtx.destination);
+    chimeGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    chimeGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    chime.start(audioCtx.currentTime);
+    chime.stop(audioCtx.currentTime + 0.3);
+    
+  } else if(type === 'wrong'){
+    // Popular "buzzer" sound - like wrong answer in game show
+    // Creates attention-grabbing, negative tone
+    
+    // Low buzzer tone
+    const buzz = audioCtx.createOscillator();
+    const buzzGain = audioCtx.createGain();
+    buzz.type = 'square'; // Square wave for harsh buzzer sound
+    buzz.frequency.setValueAtTime(200, audioCtx.currentTime);
+    buzz.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.5);
+    buzz.connect(buzzGain);
+    buzzGain.connect(audioCtx.destination);
+    buzzGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    buzzGain.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.5);
+    buzz.start(audioCtx.currentTime);
+    buzz.stop(audioCtx.currentTime + 0.5);
+    
+    // Second layer - higher frequency buzz for richness
+    const buzz2 = audioCtx.createOscillator();
+    const buzz2Gain = audioCtx.createGain();
+    buzz2.type = 'sawtooth'; // Sawtooth for harsher tone
+    buzz2.frequency.setValueAtTime(300, audioCtx.currentTime);
+    buzz2.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.5);
+    buzz2.connect(buzz2Gain);
+    buzz2Gain.connect(audioCtx.destination);
+    buzz2Gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    buzz2Gain.gain.exponentialRampToValueAtTime(0.05, audioCtx.currentTime + 0.5);
+    buzz2.start(audioCtx.currentTime);
+    buzz2.stop(audioCtx.currentTime + 0.5);
+    
+    // Add some noise for classic buzzer feel
+    const bufferSize = audioCtx.sampleRate * 0.5;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for(let i = 0; i < bufferSize; i++){
+      const envelope = 1 - (i / bufferSize);
+      data[i] = (Math.random() * 2 - 1) * envelope * 0.3;
+    }
+    
+    const noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = 0.15;
+    noiseSource.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    noiseSource.start(audioCtx.currentTime);
+  }
+}
+
 // Utils
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))}
 
@@ -213,7 +334,7 @@ settingsClose.addEventListener('click', ()=>{ settingsModal.style.display='none'
 settingsModal.addEventListener('click', (e)=>{ if(e.target === settingsModal){ settingsModal.style.display='none'; saveSettings(); if(playing){pause(); start()} }});
 textsModal.addEventListener('click', (e)=>{ if(e.target === textsModal){ textsModal.style.display='none'; }});
 
-// Keyboard accessibility: Space toggles play/pause, Escape closes modals
+// Keyboard accessibility: Space toggles play/pause, Escape closes modals, +/- for feedback
 document.addEventListener('keydown', (e)=>{
   const tgt = e.target;
   if(tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)){
@@ -225,6 +346,16 @@ document.addEventListener('keydown', (e)=>{
   } else if(e.key === 'Escape'){
     if(settingsModal.style.display === 'flex'){ settingsModal.style.display = 'none'; saveSettings(); }
     if(textsModal.style.display === 'flex'){ textsModal.style.display = 'none'; }
+  } else if(e.key === '+' || e.key === '='){
+    // "+" for correct (= key with shift on many keyboards)
+    e.preventDefault();
+    showFloatingEmojis('😊');
+    playSound('correct');
+  } else if(e.key === '-' || e.key === '_'){
+    // "-" for wrong
+    e.preventDefault();
+    showFloatingEmojis('😢');
+    playSound('wrong');
   }
 });
 
@@ -236,6 +367,12 @@ wpmNumber.addEventListener('input', (e)=>{ settings.wpm = parseInt(e.target.valu
 
 bgColor.addEventListener('input', (e)=>{ settings.bg = e.target.value; applySettingsToUIVars(); saveSettings(); });
 fgColor.addEventListener('input', (e)=>{ settings.fg = e.target.value; applySettingsToUIVars(); saveSettings(); });
+
+emojiCountRange.addEventListener('input', (e)=>{ settings.emojiCount = parseInt(e.target.value); emojiCountNumber.value = settings.emojiCount; saveSettings(); });
+emojiCountNumber.addEventListener('input', (e)=>{ settings.emojiCount = parseInt(e.target.value)||1; emojiCountRange.value = settings.emojiCount; saveSettings(); });
+
+emojiSizeRange.addEventListener('input', (e)=>{ settings.emojiSize = parseInt(e.target.value); emojiSizeNumber.value = settings.emojiSize; saveSettings(); });
+emojiSizeNumber.addEventListener('input', (e)=>{ settings.emojiSize = parseInt(e.target.value)||24; emojiSizeRange.value = settings.emojiSize; saveSettings(); });
 
 textsBtn.addEventListener('click', ()=>{ textsModal.style.display='flex'; renderSavedList(); });
 textsClose.addEventListener('click', ()=>{ textsModal.style.display='none'; });
@@ -263,6 +400,17 @@ downloadText.addEventListener('click', ()=>{
   const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = filename + '.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+// Feedback button listeners
+correctBtn.addEventListener('click', ()=>{
+  showFloatingEmojis('😊');
+  playSound('correct');
+});
+
+wrongBtn.addEventListener('click', ()=>{
+  showFloatingEmojis('😢');
+  playSound('wrong');
 });
 
 // Init on page load with IndexedDB
