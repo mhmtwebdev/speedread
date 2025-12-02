@@ -63,6 +63,7 @@ const textInput = document.getElementById('textInput');
 const textTitle = document.getElementById('textTitle');
 const saveText = document.getElementById('saveText');
 const loadTextToViewer = document.getElementById('loadTextToViewer');
+const autoShuffle = document.getElementById('autoShuffle');
 const downloadText = document.getElementById('downloadText');
 const savedList = document.getElementById('savedList');
 
@@ -85,7 +86,8 @@ let settings = {
   bg: '#111111',
   fg: '#ffffff',
   emojiCount: 3,
-  emojiSize: 48
+  emojiSize: 48,
+  autoShuffle: false
 };
 
 // Helpers
@@ -114,6 +116,7 @@ function applySettingsToUI(){
   bgColor.value = settings.bg; fgColor.value = settings.fg;
   emojiCountRange.value = settings.emojiCount; emojiCountNumber.value = settings.emojiCount;
   emojiSizeRange.value = settings.emojiSize; emojiSizeNumber.value = settings.emojiSize;
+  if(autoShuffle) autoShuffle.checked = !!settings.autoShuffle;
 }
 function applySettingsToUIVars(){
   document.documentElement.style.setProperty('--size', settings.size + 'px');
@@ -374,6 +377,10 @@ emojiCountNumber.addEventListener('input', (e)=>{ settings.emojiCount = parseInt
 emojiSizeRange.addEventListener('input', (e)=>{ settings.emojiSize = parseInt(e.target.value); emojiSizeNumber.value = settings.emojiSize; saveSettings(); });
 emojiSizeNumber.addEventListener('input', (e)=>{ settings.emojiSize = parseInt(e.target.value)||24; emojiSizeRange.value = settings.emojiSize; saveSettings(); });
 
+if(autoShuffle){
+  autoShuffle.addEventListener('change', (e)=>{ settings.autoShuffle = !!e.target.checked; saveSettings(); });
+}
+
 textsBtn.addEventListener('click', ()=>{ textsModal.style.display='flex'; renderSavedList(); });
 textsClose.addEventListener('click', ()=>{ textsModal.style.display='none'; });
 
@@ -390,8 +397,17 @@ saveText.addEventListener('click', async ()=>{
 
 loadTextToViewer.addEventListener('click', ()=>{
   const content = textInput.value.trim(); if(!content){alert('No text to load'); return}
-  words = content.split(/\s+/).filter(Boolean); index = 0; pause(); wordEl.textContent = words[0] || ''; textsModal.style.display='none';
+  let arr = content.split(/\s+/).filter(Boolean);
+  if(settings.autoShuffle){
+    for(let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+  }
+  words = arr; index = 0; pause(); wordEl.textContent = words[0] || ''; textsModal.style.display='none';
 });
+
+// (Manual shuffle button removed; use Auto-shuffle toggle or Load to Viewer)
 
 // Download current textarea content as .txt
 downloadText.addEventListener('click', ()=>{

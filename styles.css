@@ -45,6 +45,14 @@ textarea{width:100%;min-height:160px;padding:8px;border-radius:6px;border:1px so
 
 .floating-emoji{position:fixed;font-size:48px;pointer-events:none;animation:floatEmoji 1.5s ease-out forwards;z-index:99}
 
+/* Simple toggle switch */
+.switch{position:relative;display:inline-block;width:46px;height:26px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;transition:.2s;border-radius:26px}
+.slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background:white;transition:.2s;border-radius:50%}
+.switch input:checked + .slider{background:#4ade80}
+.switch input:checked + .slider:before{transform:translateX(20px)}
+
 /* Responsive font scale */
 @media (max-width:600px){:root{--size:40px}.panel{min-width:280px}.feedback-panel{bottom:50px;right:8px}.feedback-btn{width:44px;height:44px;font-size:20px}}
 

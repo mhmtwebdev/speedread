@@ -48,11 +48,21 @@ g<!DOCTYPE html>
                 <h3 style="margin:0 0 8px 0">Texts</h3>
                 <input id="textTitle" placeholder="Title (optional)" style="width:100%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#071018;color:var(--fg)">
                 <textarea id="textInput" placeholder="Paste or type your text here"></textarea>
-                <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
-                    <button id="saveText" class="btn">Save</button>
-                    <button id="loadTextToViewer" class="btn">Load to Viewer</button>
-                    <button id="downloadText" class="btn">Download</button>
-                    <button id="textsClose" class="btn">Close</button>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <label class="switch">
+                            <input id="autoShuffle" type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                        <div class="tiny">Auto-shuffle on Load</div>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end">
+                        <button id="saveText" class="btn">Save</button>
+                        <button id="loadTextToViewer" class="btn">Load to Viewer</button>
+                        <button id="downloadText" class="btn">Download</button>
+                        <button id="textsClose" class="btn">Close</button>
+                    </div>
+                    <div class="tiny" style="margin-top:8px;color:#9fd">Not: Manuel "Shuffle &amp; Load" butonu kaldırıldı. Yükleme sırasında kelimeleri otomatik karıştırmak için üstteki "Auto-shuffle on Load" anahtarını kullanın.</div>
                 </div>
 
                 <div class="tiny" style="margin-top:10px">Saved texts</div>
