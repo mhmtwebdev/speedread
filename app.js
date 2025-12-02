@@ -63,11 +63,15 @@ function applySettingsToUIVars(){
   wordEl.style.color = settings.fg;
 }
 
-function msFromWpm(wpm){return Math.max(10, Math.round(60000 / wpm));}
+function msFromWpm(wpm){
+  if(!wpm || wpm <= 0) return 60000 * 60 * 24; // effectively pause when WPM is 0 (very large interval)
+  return Math.max(10, Math.round(60000 / wpm));
+}
 
 function start(){
   if(playing) return;
   if(words.length === 0) return;
+  if(settings.wpm <= 0){ pause(); updateViewerState(); return; }
   playing = true;
   tick();
   timer = setInterval(tick, msFromWpm(settings.wpm));
@@ -170,7 +174,7 @@ sizeRange.addEventListener('input', (e)=>{ settings.size = parseInt(e.target.val
 sizeNumber.addEventListener('input', (e)=>{ settings.size = parseInt(e.target.value)||24; sizeRange.value = settings.size; applySettingsToUIVars(); saveSettings(); });
 
 wpmRange.addEventListener('input', (e)=>{ settings.wpm = parseInt(e.target.value); wpmNumber.value = settings.wpm; saveSettings(); if(playing){pause(); start()} });
-wpmNumber.addEventListener('input', (e)=>{ settings.wpm = parseInt(e.target.value)||100; wpmRange.value = settings.wpm; saveSettings(); if(playing){pause(); start()} });
+wpmNumber.addEventListener('input', (e)=>{ settings.wpm = parseInt(e.target.value)||0; wpmRange.value = settings.wpm; saveSettings(); if(playing){pause(); start()} });
 
 bgColor.addEventListener('input', (e)=>{ settings.bg = e.target.value; applySettingsToUIVars(); saveSettings(); });
 fgColor.addEventListener('input', (e)=>{ settings.fg = e.target.value; applySettingsToUIVars(); saveSettings(); });
