@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+g<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -46,6 +46,12 @@
 
                 <div class="tiny" style="margin-top:10px">Saved texts</div>
                 <div id="savedList" class="saved-list"></div>
+                
+                <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px">
+                    <button id="exportBackup" class="btn" title="Export all saved texts as JSON">📥 Export Backup</button>
+                    <button id="importBackup" class="btn" title="Import saved texts from JSON">📤 Import Backup</button>
+                </div>
+                <input id="importFile" type="file" accept=".json" style="display:none">
             </div>
         </div>
     </div>

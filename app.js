@@ -207,6 +207,59 @@ downloadText.addEventListener('click', ()=>{
   const a = document.createElement('a'); a.href = url; a.download = filename + '.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
 
+// Export/Import backup functions
+function exportBackup(){
+  const texts = loadSavedTexts();
+  const backup = {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    texts: texts
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'speedread-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  alert('Backup exported successfully!');
+}
+
+function importBackup(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const backup = JSON.parse(e.target.result);
+      if(!backup.texts || !Array.isArray(backup.texts)){
+        alert('Invalid backup file format');
+        return;
+      }
+      const currentTexts = loadSavedTexts();
+      const merged = [...backup.texts, ...currentTexts];
+      saveSavedTexts(merged);
+      renderSavedList();
+      alert('Backup imported! ' + backup.texts.length + ' text(s) added.');
+      document.getElementById('importFile').value = '';
+    }catch(err){
+      alert('Error reading backup file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Hook up export/import buttons
+const exportBackupBtn = document.getElementById('exportBackup');
+const importBackupBtn = document.getElementById('importBackup');
+const importFile = document.getElementById('importFile');
+
+if(exportBackupBtn) exportBackupBtn.addEventListener('click', exportBackup);
+if(importBackupBtn) importBackupBtn.addEventListener('click', ()=>{ importFile.click(); });
+if(importFile) importFile.addEventListener('change', (e)=>{ importBackup(e.target.files[0]); });
+
 // Init
 loadSettings();
 renderSavedList();
@@ -221,4 +274,4 @@ if(!localStorage.getItem(TEXTS_KEY)){
 window.addEventListener('beforeunload', ()=>{ saveSettings(); });
 
 // expose for console debugging
-window.speedread = {loadSavedTexts, saveSavedTexts, settings, loadToViewer};
+window.speedread = {loadSavedTexts, saveSavedTexts, settings, loadToViewer, exportBackup, importBackup};
