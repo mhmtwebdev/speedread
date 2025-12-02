@@ -1,6 +1,47 @@
 // Storage keys
 const TEXTS_KEY = 'speedread_texts_v1';
 const SETTINGS_KEY = 'speedread_settings_v1';
+const DB_NAME = 'SpeedReadDB';
+const DB_VERSION = 1;
+const TEXTS_STORE = 'texts';
+const SETTINGS_STORE = 'settings';
+
+let db = null;
+
+// IndexedDB initialization
+function initDB(){
+  return new Promise((resolve, reject)=>{
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = ()=> reject(request.error);
+    request.onsuccess = ()=> {
+      db = request.result;
+      resolve(db);
+    };
+    request.onupgradeneeded = (e)=>{
+      db = e.target.result;
+      if(!db.objectStoreNames.contains(TEXTS_STORE)){
+        db.createObjectStore(TEXTS_STORE, {keyPath:'id'});
+      }
+      if(!db.objectStoreNames.contains(SETTINGS_STORE)){
+        db.createObjectStore(SETTINGS_STORE, {keyPath:'key'});
+      }
+    };
+  });
+}
+
+// Helper to get IndexedDB transaction
+function getTx(storeName, mode='readonly'){
+  if(!db) return null;
+  return db.transaction(storeName, mode).objectStore(storeName);
+}
+
+// Helper to convert IndexedDB request to promise
+function promisify(req){
+  return new Promise((resolve, reject)=>{
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
 
 // Elements
 const viewer = document.getElementById('viewer');
@@ -38,14 +79,21 @@ let settings = {
 };
 
 // Helpers
-function saveSettings(){
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+async function saveSettings(){
+  if(!db) return;
+  const tx = getTx(SETTINGS_STORE, 'readwrite');
+  await promisify(tx.put({key:SETTINGS_KEY, value:settings}));
 }
-function loadSettings(){
-  const s = localStorage.getItem(SETTINGS_KEY);
-  if(s){
-    try{Object.assign(settings, JSON.parse(s));}catch(e){}
-  }
+
+async function loadSettings(){
+  if(!db) return;
+  try{
+    const tx = getTx(SETTINGS_STORE, 'readonly');
+    const result = await promisify(tx.get(SETTINGS_KEY));
+    if(result && result.value){
+      Object.assign(settings, result.value);
+    }
+  }catch(e){}
   applySettingsToUI();
   applySettingsToUIVars();
 }
@@ -64,7 +112,7 @@ function applySettingsToUIVars(){
 }
 
 function msFromWpm(wpm){
-  if(!wpm || wpm <= 0) return 60000 * 60 * 24; // effectively pause when WPM is 0 (very large interval)
+  if(!wpm || wpm <= 0) return 60000 * 60 * 24;
   return Math.max(10, Math.round(60000 / wpm));
 }
 
@@ -95,17 +143,31 @@ function updateViewerState(){
   viewer.setAttribute('data-playing', playing? '1':'0');
 }
 
-// Load texts
-function loadSavedTexts(){
-  const raw = localStorage.getItem(TEXTS_KEY);
-  try{return raw ? JSON.parse(raw) : [];}catch(e){return []}
-}
-function saveSavedTexts(list){
-  localStorage.setItem(TEXTS_KEY, JSON.stringify(list));
+// Load texts from IndexedDB
+async function loadSavedTexts(){
+  if(!db) return [];
+  try{
+    const tx = getTx(TEXTS_STORE, 'readonly');
+    const allRecords = await promisify(tx.getAll());
+    return allRecords.sort((a,b)=> (b.id || 0) - (a.id || 0));
+  }catch(e){
+    return [];
+  }
 }
 
-function renderSavedList(){
-  const arr = loadSavedTexts();
+async function saveSavedTexts(list){
+  if(!db) return;
+  try{
+    const tx = getTx(TEXTS_STORE, 'readwrite');
+    await promisify(tx.clear());
+    for(let item of list){
+      await promisify(tx.put(item));
+    }
+  }catch(e){}
+}
+
+async function renderSavedList(){
+  const arr = await loadSavedTexts();
   savedList.innerHTML = '';
   if(arr.length===0){savedList.innerHTML = '<div class="tiny">No saved texts</div>'; return}
   arr.forEach(item=>{
@@ -120,14 +182,13 @@ function renderSavedList(){
           const a = document.createElement('a'); a.href = url; a.download = filename + '.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
         };
     const loadViewerBtn = document.createElement('button'); loadViewerBtn.textContent='Open'; loadViewerBtn.className='small-btn btn'; loadViewerBtn.onclick = ()=>{ loadToViewer(item); textsModal.style.display='none'; };
-    const delBtn = document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='small-btn btn'; delBtn.onclick = ()=>{ if(confirm('Delete this saved text?')){ const next = arr.filter(x=>x.id!==item.id); saveSavedTexts(next); renderSavedList(); }};
-            right.appendChild(loadBtn); right.appendChild(loadViewerBtn); right.appendChild(dlSavedBtn); right.appendChild(delBtn);
+    const delBtn = document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='small-btn btn'; delBtn.onclick = async ()=>{ if(confirm('Delete this saved text?')){ const next = arr.filter(x=>x.id!==item.id); await saveSavedTexts(next); renderSavedList(); }};
+    right.appendChild(loadBtn); right.appendChild(loadViewerBtn); right.appendChild(dlSavedBtn); right.appendChild(delBtn);
     el.appendChild(left); el.appendChild(right); savedList.appendChild(el);
   })
 }
 
 function loadToViewer(item){
-  // apply settings saved with text if present
   if(item.settings){ Object.assign(settings, item.settings); applySettingsToUI(); applySettingsToUIVars(); saveSettings(); }
   const content = (item.content || '').trim();
   words = content.split(/\s+/).filter(Boolean);
@@ -154,14 +215,11 @@ textsModal.addEventListener('click', (e)=>{ if(e.target === textsModal){ textsMo
 
 // Keyboard accessibility: Space toggles play/pause, Escape closes modals
 document.addEventListener('keydown', (e)=>{
-  // If focus is on an input/textarea or a contentEditable element, don't intercept keys
   const tgt = e.target;
   if(tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)){
-    return; // allow normal typing (including Space) inside form controls
+    return;
   }
-
   if(e.code === 'Space'){
-    // prevent page scroll when toggling
     e.preventDefault();
     toggle();
   } else if(e.key === 'Escape'){
@@ -182,13 +240,13 @@ fgColor.addEventListener('input', (e)=>{ settings.fg = e.target.value; applySett
 textsBtn.addEventListener('click', ()=>{ textsModal.style.display='flex'; renderSavedList(); });
 textsClose.addEventListener('click', ()=>{ textsModal.style.display='none'; });
 
-saveText.addEventListener('click', ()=>{
+saveText.addEventListener('click', async ()=>{
   const content = textInput.value.trim(); if(!content){alert('Enter some text first'); return}
-  const arr = loadSavedTexts();
+  const arr = await loadSavedTexts();
   const id = Date.now()+Math.random();
   const title = (textTitle.value || content.slice(0,60)).trim();
   arr.unshift({id,title,content,settings:{...settings}});
-  saveSavedTexts(arr);
+  await saveSavedTexts(arr);
   renderSavedList();
   alert('Saved');
 });
@@ -207,71 +265,27 @@ downloadText.addEventListener('click', ()=>{
   const a = document.createElement('a'); a.href = url; a.download = filename + '.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
 
-// Export/Import backup functions
-function exportBackup(){
-  const texts = loadSavedTexts();
-  const backup = {
-    version: 1,
-    exportDate: new Date().toISOString(),
-    texts: texts
-  };
-  const json = JSON.stringify(backup, null, 2);
-  const blob = new Blob([json], {type:'application/json;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'speedread-backup-' + new Date().toISOString().slice(0,10) + '.json';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-  alert('Backup exported successfully!');
-}
-
-function importBackup(file){
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (e)=>{
-    try{
-      const backup = JSON.parse(e.target.result);
-      if(!backup.texts || !Array.isArray(backup.texts)){
-        alert('Invalid backup file format');
-        return;
-      }
-      const currentTexts = loadSavedTexts();
-      const merged = [...backup.texts, ...currentTexts];
-      saveSavedTexts(merged);
-      renderSavedList();
-      alert('Backup imported! ' + backup.texts.length + ' text(s) added.');
-      document.getElementById('importFile').value = '';
-    }catch(err){
-      alert('Error reading backup file: ' + err.message);
+// Init on page load with IndexedDB
+(async ()=>{
+  try{
+    await initDB();
+    await loadSettings();
+    await renderSavedList();
+    
+    // Provide a helpful sample if empty
+    const texts = await loadSavedTexts();
+    if(texts.length === 0){
+      const sample = `This is a SpeedRead demo. Click the screen to play and tap again to pause. Use the settings to change speed and font size.`;
+      textInput.value = sample; 
+      textTitle.value = 'Demo sample';
     }
-  };
-  reader.readAsText(file);
-}
+  }catch(e){
+    console.error('Failed to initialize IndexedDB:', e);
+  }
+})();
 
-// Hook up export/import buttons
-const exportBackupBtn = document.getElementById('exportBackup');
-const importBackupBtn = document.getElementById('importBackup');
-const importFile = document.getElementById('importFile');
-
-if(exportBackupBtn) exportBackupBtn.addEventListener('click', exportBackup);
-if(importBackupBtn) importBackupBtn.addEventListener('click', ()=>{ importFile.click(); });
-if(importFile) importFile.addEventListener('change', (e)=>{ importBackup(e.target.files[0]); });
-
-// Init
-loadSettings();
-renderSavedList();
-
-// Provide a helpful sample if empty
-if(!localStorage.getItem(TEXTS_KEY)){
-  const sample = `This is a SpeedRead demo. Click the screen to play and tap again to pause. Use the settings to change speed and font size.`;
-  textInput.value = sample; textTitle.value = 'Demo sample';
-}
-
-// Save settings periodically (or on unload)
+// Save settings on unload
 window.addEventListener('beforeunload', ()=>{ saveSettings(); });
 
 // expose for console debugging
-window.speedread = {loadSavedTexts, saveSavedTexts, settings, loadToViewer, exportBackup, importBackup};
+window.speedread = {loadSavedTexts, saveSavedTexts, settings, loadToViewer, initDB};
